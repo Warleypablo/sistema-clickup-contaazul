@@ -1,0 +1,41 @@
+# Arquivos de ambiente e configuração
+.env
+*.env
+
+# Arquivos de token
+tokens.*
+
+# Cache do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribuição / empacotamento
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Ambientes virtuais
+venv/
+env/
+ENV/
+
+# Arquivos de IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
+
+# Arquivos de log
+*.log
+
+# Arquivos Excel
+*.xlsx
+*.xls
+
+# Arquivos específicos do projeto
+# Adicione aqui quaisquer outros arquivos que não devem ser versionados
