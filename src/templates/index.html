@@ -5,18 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Consultas</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             padding-top: 2rem;
-            background-color: #f8f9fa;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
         .card {
             margin-bottom: 1rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
         }
         .card-header {
-            background-color: #0d6efd;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            border-radius: 16px 16px 0 0 !important;
+            border: none;
         }
         .status-pago {
             color: green;
@@ -29,6 +36,49 @@
         .status-vencido {
             color: red;
             font-weight: bold;
+        }
+        
+        /* Estilos para categorias de faturas */
+        .table-danger {
+            --bs-table-bg: rgba(220, 53, 69, 0.1);
+            border-left: 4px solid #dc3545;
+        }
+        .table-warning {
+            --bs-table-bg: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
+        }
+        .table-info {
+            --bs-table-bg: rgba(13, 202, 240, 0.1);
+            border-left: 4px solid #0dcaf0;
+        }
+        .table-success {
+            --bs-table-bg: rgba(25, 135, 84, 0.1);
+            border-left: 4px solid #198754;
+        }
+        
+        /* Animação para destacar faturas vencidas */
+        .table-danger tbody tr {
+            animation: pulse-red 2s infinite;
+        }
+        
+        @keyframes pulse-red {
+            0% { background-color: rgba(220, 53, 69, 0.1); }
+            50% { background-color: rgba(220, 53, 69, 0.2); }
+            100% { background-color: rgba(220, 53, 69, 0.1); }
+        }
+        
+        /* Badges com melhor contraste */
+        .badge {
+            font-size: 0.75em;
+            padding: 0.5em 0.75em;
+        }
+        
+        /* Destaque para valores importantes */
+        .text-danger strong {
+            font-size: 1.1em;
+        }
+        .text-success strong {
+            font-size: 1.1em;
         }
         .loading {
             display: none;
@@ -46,12 +96,54 @@
             margin-bottom: 1rem;
         }
         .search-container {
-            background-color: white;
+            background: rgba(255, 255, 255, 0.95);
             padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        .form-control {
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            padding: 12px 16px;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+             border-color: #667eea;
+             box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+         }
+         .btn-outline-light {
+             border: 2px solid rgba(255, 255, 255, 0.3);
+             color: white;
+             border-radius: 12px;
+             padding: 8px 16px;
+             font-weight: 500;
+             transition: all 0.3s ease;
+             backdrop-filter: blur(10px);
+         }
+         .btn-outline-light:hover {
+             background: rgba(255, 255, 255, 0.1);
+             border-color: rgba(255, 255, 255, 0.5);
+             color: white;
+             transform: translateY(-1px);
+         }
+         .text-white-50 {
+             color: rgba(255, 255, 255, 0.7) !important;
+         }
         #dbStatus {
             margin-bottom: 1rem;
         }
@@ -62,8 +154,16 @@
         <div class="row justify-content-center">
             <div class="col-md-10">
                 <div class="text-center mb-4">
-                    <h1 class="display-5">Consulta de Contas a Receber</h1>
-                     <p class="lead">Sistema de consulta integrado com Conta Azul</p>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <a href="/" class="btn btn-outline-light">
+                            <i class="fas fa-arrow-left"></i> Voltar ao TurboX
+                        </a>
+                        <div class="text-center flex-grow-1">
+                            <h1 class="display-5 text-white mb-0">SIN - Sistema Integrado</h1>
+                            <p class="lead text-white-50">Consulta de Contas a Receber integrado com Conta Azul</p>
+                        </div>
+                        <div style="width: 140px;"></div>
+                    </div>
                 </div>
                 
                 <div id="dbStatus"></div>
@@ -270,9 +370,55 @@
                 if (data.error) {
                     exibirErro('Erro ao buscar detalhes: ' + data.error);
                     return;
+                } else if (data.message && !data.cliente_existe) {
+                    exibirErro(data.message);
+                    return;
+                } else if (data.message && data.cliente_existe && data.faturas_vencidas === 0) {
+                    // Cliente existe mas não tem faturas vencidas
+                    const resultadosDiv = document.getElementById('resultados');
+                    let clickupInfo = '';
+                    
+                    // Adicionar informações do ClickUp se disponíveis
+                    if (data.clickup) {
+                        clickupInfo = '<hr><p><strong>Informações ClickUp:</strong></p><ul>';
+                        if (data.clickup.responsavel) clickupInfo += `<li>👤 Responsável: ${data.clickup.responsavel}</li>`;
+                        if (data.clickup.segmento) clickupInfo += `<li>🏢 Segmento: ${data.clickup.segmento}</li>`;
+                        if (data.clickup.cluster) clickupInfo += `<li>🎯 Cluster: ${data.clickup.cluster}</li>`;
+                        if (data.clickup.status_conta) clickupInfo += `<li>📊 Status da Conta: ${data.clickup.status_conta}</li>`;
+                        if (data.clickup.atividade) clickupInfo += `<li>🔄 Atividade: ${data.clickup.atividade}</li>`;
+                        if (data.clickup.telefone) clickupInfo += `<li>📞 Telefone: ${data.clickup.telefone}</li>`;
+                        clickupInfo += '</ul>';
+                    }
+                    
+                    let ltvInfo = '';
+                    if (data.ltv) {
+                        ltvInfo = '<hr><p><strong>Informações LTV:</strong></p><ul>';
+                        if (data.ltv.total_pago > 0) ltvInfo += `<li>💎 LTV Total Pago: R$ ${data.ltv.total_pago.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>`;
+                        if (data.ltv.total_faturas > 0) ltvInfo += `<li>📊 Total de Faturas (LTV): ${data.ltv.total_faturas}</li>`;
+                        if (data.ltv.valor_inadimplente_total > 0) ltvInfo += `<li>⚠️ Valor Inadimplente Total: R$ ${data.ltv.valor_inadimplente_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>`;
+                        ltvInfo += '</ul>';
+                    }
+                    
+                    resultadosDiv.innerHTML = `
+                        <div class="alert alert-info" role="alert">
+                            <h5><i class="fas fa-check-circle"></i> Cliente Encontrado</h5>
+                            <p><strong>${data.cliente_nome}</strong></p>
+                            <p>✅ <strong>Status:</strong> Cliente em dia! Não há faturas vencidas.</p>
+                            <hr>
+                            <p><strong>Resumo Financeiro:</strong></p>
+                            <ul>
+                                <li>📊 Total de Faturas: ${data.total_faturas}</li>
+                                <li>💰 Total Pago: R$ ${data.total_pago.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>
+                                <li>⏳ Saldo Pendente: R$ ${data.total_pendente.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>
+                            </ul>
+                            ${ltvInfo}
+                            ${clickupInfo}
+                        </div>
+                    `;
+                    resultadosDiv.style.display = 'block';
+                } else {
+                    exibirResultados(data);
                 }
-                
-                exibirResultados(data);
                 
                 // Scroll para os resultados
                 document.getElementById('resultados').scrollIntoView({ behavior: 'smooth' });
@@ -353,6 +499,51 @@
                 esconderCarregando();
                 if (data.error) {
                     exibirErro(data.error);
+                } else if (data.message && !data.cliente_existe) {
+                    exibirErro(data.message);
+                } else if (data.message && data.cliente_existe && data.faturas_vencidas === 0) {
+                    // Cliente existe mas não tem faturas vencidas
+                    const resultadosDiv = document.getElementById('resultados');
+                    
+                    let clickupInfo = '';
+                    // Adicionar informações do ClickUp se disponíveis
+                    if (data.clickup) {
+                        clickupInfo = '<hr><p><strong>Informações ClickUp:</strong></p><ul>';
+                        if (data.clickup.responsavel) clickupInfo += `<li>👤 Responsável: ${data.clickup.responsavel}</li>`;
+                        if (data.clickup.segmento) clickupInfo += `<li>🏢 Segmento: ${data.clickup.segmento}</li>`;
+                        if (data.clickup.cluster) clickupInfo += `<li>🎯 Cluster: ${data.clickup.cluster}</li>`;
+                        if (data.clickup.status_conta) clickupInfo += `<li>📊 Status da Conta: ${data.clickup.status_conta}</li>`;
+                        if (data.clickup.atividade) clickupInfo += `<li>🔄 Atividade: ${data.clickup.atividade}</li>`;
+                        if (data.clickup.telefone) clickupInfo += `<li>📞 Telefone: ${data.clickup.telefone}</li>`;
+                        clickupInfo += '</ul>';
+                    }
+                    
+                    let ltvInfo = '';
+                    if (data.ltv) {
+                        ltvInfo = '<hr><p><strong>Informações LTV:</strong></p><ul>';
+                        if (data.ltv.total_pago > 0) ltvInfo += `<li>💎 LTV Total Pago: R$ ${data.ltv.total_pago.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>`;
+                        if (data.ltv.total_faturas > 0) ltvInfo += `<li>📊 Total de Faturas (LTV): ${data.ltv.total_faturas}</li>`;
+                        if (data.ltv.valor_inadimplente_total > 0) ltvInfo += `<li>⚠️ Valor Inadimplente Total: R$ ${data.ltv.valor_inadimplente_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>`;
+                        ltvInfo += '</ul>';
+                    }
+                    
+                    resultadosDiv.innerHTML = `
+                        <div class="alert alert-info" role="alert">
+                            <h5><i class="fas fa-check-circle"></i> Cliente Encontrado</h5>
+                            <p><strong>${data.cliente_nome}</strong></p>
+                            <p>✅ <strong>Status:</strong> Cliente em dia! Não há faturas vencidas.</p>
+                            <hr>
+                            <p><strong>Resumo Financeiro:</strong></p>
+                            <ul>
+                                <li>📊 Total de Faturas: ${data.total_faturas}</li>
+                                <li>💰 Total Pago: R$ ${data.total_pago.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>
+                                <li>⏳ Saldo Pendente: R$ ${data.total_pendente.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>
+                            </ul>
+                            ${ltvInfo}
+                            ${clickupInfo}
+                        </div>
+                    `;
+                    resultadosDiv.style.display = 'block';
                 } else {
                     exibirResultados(data);
                 }
@@ -422,9 +613,19 @@
             // Criar cards para cada cliente
             for (const clienteNome in clientesMap) {
                 const clienteItems = clientesMap[clienteNome];
-                const totalAberto = clienteItems
-                    .filter(item => item.status !== 'pago')
+                
+                // Categorizar faturas por status
+                const vencidas = clienteItems.filter(item => item.status_cobranca === 'vencido');
+                const venceHoje = clienteItems.filter(item => item.status_cobranca === 'vence_hoje');
+                const futuras = clienteItems.filter(item => item.status_cobranca === 'futuro');
+                const pagas = clienteItems.filter(item => item.status_cobranca === 'pago');
+                
+                const totalPendente = clienteItems
+                    .filter(item => item.nao_pago > 0)
                     .reduce((sum, item) => sum + parseFloat(item.nao_pago || 0), 0);
+                const totalPago = clienteItems
+                    .filter(item => item.pago > 0)
+                    .reduce((sum, item) => sum + parseFloat(item.pago || 0), 0);
                 
                 // Obter informações do ClickUp e LTV do primeiro item (todas as contas do mesmo cliente terão as mesmas informações)
                 const primeiroItem = clienteItems[0];
@@ -452,13 +653,20 @@
                                 <h5 class="mb-1">${clienteNome}</h5>
                                 <div class="row">
                                     <div class="col-sm-6">
-                                        <p class="mb-0"><strong>Total em aberto:</strong> <span class="text-danger">R$ ${totalAberto.toFixed(2)}</span></p>
+                                        <p class="mb-0"><strong>Total Pendente:</strong> <span class="text-danger">R$ ${totalPendente.toFixed(2)}</span></p>
+                                        <p class="mb-0"><strong>Total Pago:</strong> <span class="text-success">R$ ${totalPago.toFixed(2)}</span></p>
                                     </div>
                                     <div class="col-sm-6">
                                         <p class="mb-0"><strong>LTV (Total Pago):</strong> <span class="text-success">R$ ${parseFloat(ltv).toFixed(2)}</span></p>
+                                        <small class="text-muted">Total de faturas: ${totalFaturas}</small>
                                     </div>
                                 </div>
-                                <small class="text-muted">Total de faturas: ${totalFaturas}</small>
+                                <div class="mt-2">
+                                    ${vencidas.length > 0 ? `<span class="badge bg-danger me-1">🔴 ${vencidas.length} Vencida(s)</span>` : ''}
+                                    ${venceHoje.length > 0 ? `<span class="badge bg-warning me-1">🟡 ${venceHoje.length} Vence Hoje</span>` : ''}
+                                    ${futuras.length > 0 ? `<span class="badge bg-info me-1">🔵 ${futuras.length} Futura(s)</span>` : ''}
+                                    ${pagas.length > 0 ? `<span class="badge bg-success me-1">✅ ${pagas.length} Paga(s)</span>` : ''}
+                                </div>
                             </div>
                             <div class="col-md-4">
                                 ${temInfoClickUp ? `
@@ -468,6 +676,7 @@
                                         ${primeiroItem.responsavel ? `<span class="badge bg-primary me-1 mb-1">👤 ${primeiroItem.responsavel}</span><br>` : ''}
                                         ${primeiroItem.segmento ? `<span class="badge bg-secondary me-1 mb-1">📊 Seg: ${primeiroItem.segmento}</span>` : ''}
                                         ${primeiroItem.cluster ? `<span class="badge bg-info me-1 mb-1">🏷️ Cluster: ${primeiroItem.cluster}</span><br>` : ''}
+                                        ${primeiroItem.status_clickup !== null && primeiroItem.status_clickup !== undefined ? `<span class="badge ${primeiroItem.status_clickup == 'ativo' ? 'bg-success' : 'bg-danger'} me-1 mb-1">⚡ Operacional: ${primeiroItem.status_clickup == 'ativo' ? 'Ativo' : 'Inativo'}</span><br>` : ''}
                                         ${primeiroItem.status_conta !== null && primeiroItem.status_conta !== undefined ? `<span class="badge ${primeiroItem.status_conta == 1 ? 'bg-success' : 'bg-warning'} me-1 mb-1">📈 Status: ${primeiroItem.status_conta == 1 ? 'Ativo' : 'Inativo'}</span>` : ''}
                                         ${primeiroItem.telefone_clickup ? `<span class="badge bg-success me-1 mb-1">📞 ${primeiroItem.telefone_clickup}</span>` : ''}
                                     </div>
@@ -481,27 +690,65 @@
                         </div>
                     </div>
                     <div class="card-body">
+                        <h6><i class="fas fa-list"></i> Histórico de Faturas (${data.length})</h6>
                         <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
                                     <tr>
+                                        <th>Status</th>
                                         <th>Descrição</th>
                                         <th>Vencimento</th>
                                         <th>Valor</th>
-                                        <th>Status</th>
-                                        <th>Link Pagamento</th>
+                                        <th>Link de Pagamento</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${clienteItems.map(item => `
-                                        <tr>
-                                            <td>${item.descricao || 'Sem descrição'}</td>
-                                            <td>${formatarData(item.data_vencimento)}</td>
-                                            <td>R$ ${parseFloat(item.total).toFixed(2)}</td>
-                                            <td class="status-${getStatusClass(item.status)}">${item.status}</td>
-                                            <td>${item.link_pagamento ? `<a href="${item.link_pagamento}" target="_blank" class="btn btn-sm btn-primary">Pagar</a>` : 'N/A'}</td>
-                                        </tr>
-                                    `).join('')}
+                                    ${data.map(item => {
+                                        const isVencido = item.status_cobranca === 'vencido';
+                                        const isVenceHoje = item.status_cobranca === 'vence_hoje';
+                                        const isPago = item.status_cobranca === 'pago';
+                                        const isFuturo = item.status_cobranca === 'futuro';
+                                        
+                                        let statusBadge = '';
+                                        let rowClass = '';
+                                        
+                                        if (isVencido) {
+                                            statusBadge = '<span class="badge bg-danger">🔴 Vencida</span>';
+                                            rowClass = 'table-danger';
+                                        } else if (isVenceHoje) {
+                                            statusBadge = '<span class="badge bg-warning">🟡 Vence Hoje</span>';
+                                            rowClass = 'table-warning';
+                                        } else if (isPago) {
+                                            statusBadge = '<span class="badge bg-success">✅ Paga</span>';
+                                            rowClass = 'table-success';
+                                        } else if (isFuturo) {
+                                            statusBadge = '<span class="badge bg-info">🔵 Futura</span>';
+                                            rowClass = 'table-info';
+                                        }
+                                        
+                                        const valor = isPago ? parseFloat(item.pago || 0) : parseFloat(item.nao_pago || 0);
+                                        const valorTexto = isPago ? 'Pago' : 'Pendente';
+                                        
+                                        return `
+                                            <tr class="${rowClass}">
+                                                <td>${statusBadge}</td>
+                                                <td>${item.descricao || 'Sem descrição'}</td>
+                                                <td><strong>${formatarData(item.data_vencimento)}</strong></td>
+                                                <td>
+                                                    <strong>R$ ${valor.toFixed(2)}</strong>
+                                                    <br><small class="text-muted">${valorTexto}</small>
+                                                </td>
+                                                <td>
+                                                    ${item.link_pagamento && !isPago ? 
+                                                        `<a href="${item.link_pagamento}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-credit-card"></i> Pagar Agora
+                                                        </a>` : 
+                                                        (isPago ? '<span class="text-success"><i class="fas fa-check-circle"></i> Pago</span>' : '<span class="text-muted">N/A</span>')
+                                                    }
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
                                 </tbody>
                             </table>
                         </div>
