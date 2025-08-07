@@ -34,8 +34,8 @@ def get_db_connection():
         database_url = os.environ.get('DATABASE_URL')
         
         if database_url:
-            # Formato esperado: postgres://user:password@host:port/dbname
-            # Heroku usa postgresql:// em vez de postgres://, então precisamos substituir
+            # Formato esperado: postgresql://user:password@host:port/dbname
+            # Heroku usa postgres:// que precisa ser convertido para postgresql://
             if database_url.startswith('postgres://'):
                 database_url = database_url.replace('postgres://', 'postgresql://', 1)
             
@@ -1113,8 +1113,8 @@ def listar_clientes_chat():
 
 # Iniciar a aplicação
 if __name__ == '__main__':
-    # Obter a porta do ambiente (para compatibilidade com Heroku) ou usar 5000 como padrão
+    # Obter a porta do ambiente (para compatibilidade com Railway/Heroku) ou usar 5000 como padrão
     port = int(os.environ.get("PORT", 5000))
     # Definir o modo de depuração com base no ambiente
     debug_mode = os.environ.get("FLASK_ENV") == "development"
-    app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)
