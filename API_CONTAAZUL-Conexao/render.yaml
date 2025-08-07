@@ -9,12 +9,5 @@ services:
       - key: FLASK_ENV
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: sistema-clickup-db
-          property: connectionString
-
-databases:
-  - name: sistema-clickup-db
-    plan: free
-    databaseName: sistema_clickup
-    user: sistema_user
+        value: postgresql://postgres:Ap3gYn3yg23Uy@34.95.249.110:5432/dados_turbo?sslmode=require
+        sync: false
