@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Consultas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 2rem;
+            background-color: #f8f9fa;
+        }
+        .card {
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .status-pago {
+            color: green;
+            font-weight: bold;
+        }
+        .status-aberto {
+            color: orange;
+            font-weight: bold;
+        }
+        .status-vencido {
+            color: red;
+            font-weight: bold;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .no-results {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            color: #dc3545;
+        }
+        .logo {
+            max-height: 60px;
+            margin-bottom: 1rem;
+        }
+        .search-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        #dbStatus {
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="text-center mb-4">
+                    <h1 class="display-5">Consulta de Contas a Receber</h1>
+                     <p class="lead">Sistema de consulta integrado com Conta Azul</p>
+                </div>
+                
+                <div id="dbStatus"></div>
+                
+                <!-- Navegação -->
+                <div class="mb-4">
+                    <button class="btn btn-outline-primary" onclick="mostrarListaClientes()" id="btnListaClientes">Lista de Clientes</button>
+                    <button class="btn btn-outline-secondary" onclick="mostrarBusca()" id="btnBusca">Busca Específica</button>
+                </div>
+                
+                <!-- Lista de Clientes -->
+                <div id="listaClientes" style="display: block;">
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Todos os Clientes</h5>
+                            <div class="mb-3">
+                                <input type="text" class="form-control" id="filtroClientes" placeholder="Filtrar por nome ou CNPJ..." onkeyup="filtrarClientes()">
+                            </div>
+                            <div id="tabelaClientes"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Formulário de busca específica -->
+                <div id="buscaEspecifica" style="display: none;">
+                    <div class="search-container">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <h5>Buscar por CNPJ</h5>
+                                    <form id="cnpjForm" class="d-flex">
+                                        <input type="text" id="cnpj" class="form-control me-2" placeholder="Digite o CNPJ" required>
+                                        <button type="submit" class="btn btn-primary">Buscar</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <h5>Buscar por Nome</h5>
+                                    <form id="nomeForm" class="d-flex">
+                                        <input type="text" id="nome" class="form-control me-2" placeholder="Digite o nome do cliente" required>
+                                        <button type="submit" class="btn btn-primary">Buscar</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="loading" class="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p>Buscando dados...</p>
+                </div>
+                
+                <div id="noResults" class="no-results">
+                    <p>Nenhum resultado encontrado para a consulta.</p>
+                </div>
+                
+                <div id="resultados"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Verificar conexão com o banco ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            verificarConexaoDB();
+            carregarListaClientes();
+        });
+        
+        // Variável global para armazenar todos os clientes
+        let todosClientes = [];
+        
+        // Funções de navegação
+        function mostrarListaClientes() {
+            document.getElementById('listaClientes').style.display = 'block';
+            document.getElementById('buscaEspecifica').style.display = 'none';
+            document.getElementById('resultados').innerHTML = '';
+            document.getElementById('btnListaClientes').className = 'btn btn-primary';
+            document.getElementById('btnBusca').className = 'btn btn-outline-secondary';
+            carregarListaClientes();
+        }
+        
+        function mostrarBusca() {
+            document.getElementById('listaClientes').style.display = 'none';
+            document.getElementById('buscaEspecifica').style.display = 'block';
+            document.getElementById('resultados').innerHTML = '';
+            document.getElementById('btnListaClientes').className = 'btn btn-outline-primary';
+            document.getElementById('btnBusca').className = 'btn btn-primary';
+        }
+        
+        // Carregar lista de todos os clientes
+        function carregarListaClientes() {
+            mostrarCarregando();
+            
+            fetch('/listar-clientes')
+                .then(response => response.json())
+                .then(data => {
+                    esconderCarregando();
+                    if (data.error) {
+                        exibirErro('Erro ao carregar clientes: ' + data.error);
+                        return;
+                    }
+                    
+                    todosClientes = data;
+                    exibirTabelaClientes(data);
+                })
+                .catch(error => {
+                    esconderCarregando();
+                    console.error('Erro:', error);
+                    exibirErro('Erro ao carregar lista de clientes.');
+                });
+        }
+        
+        // Exibir tabela de clientes
+        function exibirTabelaClientes(clientes) {
+            const container = document.getElementById('tabelaClientes');
+            
+            if (clientes.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">Nenhum cliente encontrado.</div>';
+                return;
+            }
+            
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Nome</th>
+                                <th>CNPJ</th>
+                                <th>Status ClickUp</th>
+                                <th>Responsável</th>
+                                <th>Pendências</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            clientes.forEach(cliente => {
+                const statusClickUp = cliente.status_conta || 'Sem dados';
+                const responsavel = cliente.responsavel || 'Não informado';
+                const temPendencias = cliente.tem_pendencias ? 
+                    '<span class="badge bg-danger">Sim</span>' : 
+                    '<span class="badge bg-success">Não</span>';
+                
+                html += `
+                    <tr style="cursor: pointer;" onclick="verDetalhesCliente('${cliente.cnpj}', '${cliente.nome.replace(/'/g, "\\'")}')"
+                        onmouseover="this.style.backgroundColor='#f8f9fa'" 
+                        onmouseout="this.style.backgroundColor=''">
+                        <td><strong>${cliente.nome}</strong></td>
+                        <td>${cliente.cnpj}</td>
+                        <td><span class="badge bg-info">${statusClickUp}</span></td>
+                        <td>${responsavel}</td>
+                        <td>${temPendencias}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); verDetalhesCliente('${cliente.cnpj}', '${cliente.nome.replace(/'/g, "\\'")}')">Ver Detalhes</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        // Filtrar clientes
+        function filtrarClientes() {
+            const filtro = document.getElementById('filtroClientes').value.toLowerCase();
+            const clientesFiltrados = todosClientes.filter(cliente => 
+                cliente.nome.toLowerCase().includes(filtro) || 
+                cliente.cnpj.includes(filtro)
+            );
+            exibirTabelaClientes(clientesFiltrados);
+        }
+        
+        // Ver detalhes do cliente
+        function verDetalhesCliente(cnpj, nome) {
+            console.log('Buscando detalhes para:', cnpj, nome);
+            
+            // Mostrar área de resultados
+            document.getElementById('resultados').innerHTML = '';
+            mostrarCarregando();
+            
+            // Fazer busca por CNPJ
+            const formData = new FormData();
+            formData.append('cnpj', cnpj);
+            
+            fetch('/buscar', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                esconderCarregando();
+                if (data.error) {
+                    exibirErro('Erro ao buscar detalhes: ' + data.error);
+                    return;
+                }
+                
+                exibirResultados(data);
+                
+                // Scroll para os resultados
+                document.getElementById('resultados').scrollIntoView({ behavior: 'smooth' });
+            })
+            .catch(error => {
+                esconderCarregando();
+                console.error('Erro:', error);
+                exibirErro('Erro ao buscar detalhes do cliente.');
+            });
+        }
+
+        function verificarConexaoDB() {
+            fetch('/check-db')
+                .then(response => response.json())
+                .then(data => {
+                    const dbStatusDiv = document.getElementById('dbStatus');
+                    if (data.status === 'success') {
+                        dbStatusDiv.innerHTML = `
+                            <div class="alert alert-success" role="alert">
+                                <strong>Conexão estabelecida:</strong> ${data.message}
+                            </div>
+                        `;
+                        // Habilitar formulários
+                        document.getElementById('cnpjForm').classList.remove('disabled');
+                        document.getElementById('nomeForm').classList.remove('disabled');
+                    } else {
+                        dbStatusDiv.innerHTML = `
+                            <div class="alert alert-danger" role="alert">
+                                <strong>Erro de conexão:</strong> ${data.message}
+                                <p>Verifique se o banco de dados está acessível e se as credenciais no arquivo .env estão corretas.</p>
+                            </div>
+                        `;
+                        // Desabilitar formulários
+                        document.getElementById('cnpjForm').classList.add('disabled');
+                        document.getElementById('nomeForm').classList.add('disabled');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao verificar conexão:', error);
+                    const dbStatusDiv = document.getElementById('dbStatus');
+                    dbStatusDiv.innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            <strong>Erro ao verificar conexão:</strong> Não foi possível verificar a conexão com o banco de dados.
+                            <p>Verifique se o servidor está em execução.</p>
+                        </div>
+                    `;
+                });
+        }
+
+        document.getElementById('cnpjForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const cnpj = document.getElementById('cnpj').value.trim();
+            if (cnpj) {
+                buscarPorCNPJ(cnpj);
+            }
+        });
+
+        document.getElementById('nomeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nome = document.getElementById('nome').value.trim();
+            if (nome) {
+                buscarPorNome(nome);
+            }
+        });
+
+        function buscarPorCNPJ(cnpj) {
+            mostrarCarregando();
+            
+            const formData = new FormData();
+            formData.append('cnpj', cnpj);
+            
+            fetch('/buscar', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                esconderCarregando();
+                if (data.error) {
+                    exibirErro(data.error);
+                } else {
+                    exibirResultados(data);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                esconderCarregando();
+                exibirErro('Ocorreu um erro ao buscar os dados. Por favor, tente novamente.');
+            });
+        }
+
+        function buscarPorNome(nome) {
+            mostrarCarregando();
+            
+            const formData = new FormData();
+            formData.append('nome', nome);
+            
+            fetch('/buscar_por_nome', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                esconderCarregando();
+                if (data.error) {
+                    exibirErro(data.error);
+                } else {
+                    exibirResultados(data);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                esconderCarregando();
+                exibirErro('Ocorreu um erro ao buscar os dados. Por favor, tente novamente.');
+            });
+        }
+
+        function mostrarCarregando() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('noResults').style.display = 'none';
+            document.getElementById('resultados').innerHTML = '';
+        }
+
+        function esconderCarregando() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function exibirResultados(data) {
+            console.log('Dados recebidos no frontend:', data); // Debug log
+            const resultadosDiv = document.getElementById('resultados');
+            resultadosDiv.innerHTML = '';
+            
+            if (data.length === 0) {
+                document.getElementById('noResults').style.display = 'block';
+                return;
+            }
+            
+            // Agrupar por cliente
+            const clientesMap = {};
+            data.forEach(item => {
+                if (!clientesMap[item.cliente_nome]) {
+                    clientesMap[item.cliente_nome] = [];
+                }
+                clientesMap[item.cliente_nome].push(item);
+            });
+            
+            // Criar cards para cada cliente
+            for (const clienteNome in clientesMap) {
+                const clienteItems = clientesMap[clienteNome];
+                const totalAberto = clienteItems
+                    .filter(item => item.status !== 'pago')
+                    .reduce((sum, item) => sum + parseFloat(item.nao_pago || 0), 0);
+                
+                // Obter informações do ClickUp e LTV do primeiro item (todas as contas do mesmo cliente terão as mesmas informações)
+                const primeiroItem = clienteItems[0];
+                console.log('Primeiro item para cliente', clienteNome, ':', primeiroItem); // Debug log
+                console.log('Verificando campos ClickUp:', {
+                    responsavel: primeiroItem.responsavel,
+                    segmento: primeiroItem.segmento, 
+                    cluster: primeiroItem.cluster,
+                    status_conta: primeiroItem.status_conta,
+                    telefone_clickup: primeiroItem.telefone_clickup
+                });
+                const temInfoClickUp = primeiroItem.responsavel || primeiroItem.segmento || primeiroItem.cluster || (primeiroItem.status_conta !== null && primeiroItem.status_conta !== undefined);
+                console.log('temInfoClickUp:', temInfoClickUp);
+                const ltv = primeiroItem.ltv_total || 0;
+                const totalFaturas = primeiroItem.total_faturas || 0;
+                console.log('ClickUp info:', {responsavel: primeiroItem.responsavel, segmento: primeiroItem.segmento, cluster: primeiroItem.cluster}); // Debug log
+                console.log('LTV info:', {ltv_total: primeiroItem.ltv_total, total_faturas: primeiroItem.total_faturas}); // Debug log
+                
+                const clienteCard = document.createElement('div');
+                clienteCard.className = 'card mb-4';
+                clienteCard.innerHTML = `
+                    <div class="card-header">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h5 class="mb-1">${clienteNome}</h5>
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <p class="mb-0"><strong>Total em aberto:</strong> <span class="text-danger">R$ ${totalAberto.toFixed(2)}</span></p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <p class="mb-0"><strong>LTV (Total Pago):</strong> <span class="text-success">R$ ${parseFloat(ltv).toFixed(2)}</span></p>
+                                    </div>
+                                </div>
+                                <small class="text-muted">Total de faturas: ${totalFaturas}</small>
+                            </div>
+                            <div class="col-md-4">
+                                ${temInfoClickUp ? `
+                                <div class="text-end">
+                                    <h6 class="mb-1">Dados do ClickUp</h6>
+                                    <div>
+                                        ${primeiroItem.responsavel ? `<span class="badge bg-primary me-1 mb-1">👤 ${primeiroItem.responsavel}</span><br>` : ''}
+                                        ${primeiroItem.segmento ? `<span class="badge bg-secondary me-1 mb-1">📊 Seg: ${primeiroItem.segmento}</span>` : ''}
+                                        ${primeiroItem.cluster ? `<span class="badge bg-info me-1 mb-1">🏷️ Cluster: ${primeiroItem.cluster}</span><br>` : ''}
+                                        ${primeiroItem.status_conta !== null && primeiroItem.status_conta !== undefined ? `<span class="badge ${primeiroItem.status_conta == 1 ? 'bg-success' : 'bg-warning'} me-1 mb-1">📈 Status: ${primeiroItem.status_conta == 1 ? 'Ativo' : 'Inativo'}</span>` : ''}
+                                        ${primeiroItem.telefone_clickup ? `<span class="badge bg-success me-1 mb-1">📞 ${primeiroItem.telefone_clickup}</span>` : ''}
+                                    </div>
+                                </div>
+                                ` : `
+                                <div class="text-end">
+                                    <span class="badge bg-light text-dark">Sem dados ClickUp</span>
+                                </div>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Descrição</th>
+                                        <th>Vencimento</th>
+                                        <th>Valor</th>
+                                        <th>Status</th>
+                                        <th>Link Pagamento</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${clienteItems.map(item => `
+                                        <tr>
+                                            <td>${item.descricao || 'Sem descrição'}</td>
+                                            <td>${formatarData(item.data_vencimento)}</td>
+                                            <td>R$ ${parseFloat(item.total).toFixed(2)}</td>
+                                            <td class="status-${getStatusClass(item.status)}">${item.status}</td>
+                                            <td>${item.link_pagamento ? `<a href="${item.link_pagamento}" target="_blank" class="btn btn-sm btn-primary">Pagar</a>` : 'N/A'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                
+                resultadosDiv.appendChild(clienteCard);
+            }
+        }
+
+        function exibirErro(mensagem) {
+            const resultadosDiv = document.getElementById('resultados');
+            resultadosDiv.innerHTML = `
+                <div class="alert alert-danger" role="alert">
+                    ${mensagem}
+                </div>
+            `;
+        }
+
+        function formatarData(dataString) {
+            if (!dataString) return 'Data não disponível';
+            const data = new Date(dataString);
+            return data.toLocaleDateString('pt-BR');
+        }
+
+        function getStatusClass(status) {
+            if (!status) return '';
+            status = status.toLowerCase();
+            if (status === 'pago') return 'pago';
+            if (status === 'aberto') return 'aberto';
+            if (status === 'vencido') return 'vencido';
+            return '';
+        }
+    </script>
+</body>
+</html>
