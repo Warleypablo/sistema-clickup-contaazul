@@ -470,19 +470,19 @@ def turbochat_message():
                 cnpj = re.sub(r'\D', '', cnpj_match.group())
                 return buscar_por_cnpj_chat(cnpj)
         
+        # Listar todos os clientes (verificar ANTES de buscar por nome)
+        elif any(word in message for word in ['listar', 'todos', 'lista']) and 'cliente' in message:
+            return listar_clientes_chat()
+        
         # Buscar por nome de cliente
         elif any(word in message for word in ['cliente', 'empresa', 'buscar', 'procurar']):
             # Extrair nome da mensagem (remover palavras de comando)
             nome_words = message.split()
-            stop_words = ['cliente', 'empresa', 'buscar', 'procurar', 'por', 'o', 'a', 'da', 'do', 'de']
+            stop_words = ['cliente', 'empresa', 'buscar', 'procurar', 'por', 'o', 'a', 'da', 'do', 'de', 'listar', 'todos', 'lista']
             nome_parts = [word for word in nome_words if word not in stop_words and len(word) > 2]
             if nome_parts:
                 nome = ' '.join(nome_parts)
                 return buscar_por_nome_chat(nome)
-        
-        # Listar todos os clientes
-        elif any(word in message for word in ['listar', 'todos', 'clientes', 'lista']):
-            return listar_clientes_chat()
         
         # Ajuda
         elif any(word in message for word in ['ajuda', 'help', 'como', 'usar']):
@@ -1038,7 +1038,6 @@ def listar_clientes_chat():
         SELECT DISTINCT c.nome, c.cnpj,
                ck.responsavel, ck.segmento, ck.cluster, ck.status_conta, 
                ck.atividade, ck.telefone as telefone_clickup,
-               a.status_clickup,
                ltv.total_pago as ltv_total,
                ltv.total_faturas,
                ltv.valor_inadimplente_total,
@@ -1088,9 +1087,8 @@ def listar_clientes_chat():
                 response += f"   💎 LTV: R$ {float(row['ltv_total']):,.2f}\n"
             if row['responsavel']:
                 response += f"   👤 {row['responsavel']}\n"
-            if row['status_clickup'] is not None:
-                status_operacional = "🟢 Ativo" if row['status_clickup'] == 'ativo' else "🔴 Inativo"
-                response += f"   ⚡ {status_operacional}\n"
+            if row['status_conta']:
+                response += f"   ⚡ Status: {row['status_conta']}\n"
             # Resumo muito breve da atividade (apenas primeira linha)
             if row['atividade']:
                 primeira_linha = row['atividade'].split('\n')[0].split('|')[0].strip()
